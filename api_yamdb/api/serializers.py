@@ -93,7 +93,6 @@ class TitlePostSerializer(serializers.ModelSerializer):
         model = Title
         fields = '__all__'
 
-
 class ReviewSerializer(serializers.ModelSerializer):
     author = SlugRelatedField(slug_field='username', read_only=True)
 
