@@ -1,6 +1,39 @@
+from django.core.validators import RegexValidator
 from django.db import models
 
-from validators import validate_date
+from .validators import validate_date
+
+
+class Category(models.Model):
+    name = models.CharField(max_length=256, verbose_name='Имя категории')
+    slug = models.SlugField(
+        max_length=50,
+        unique=True,
+        verbose_name='Слаг',
+        validators=[RegexValidator(regex=r'^[a-zA-Z]+$')]
+    )
+
+    class Meta:
+        verbose_name = 'Категория'
+
+    def __str__(self):
+        return self.name
+
+
+class Genre(models.Model):
+    name = models.CharField(max_length=256, verbose_name='Имя жанра')
+    slug = models.SlugField(
+        max_length=50,
+        unique=True,
+        verbose_name='Слаг',
+        validators=[RegexValidator(regex=r'^[a-zA-Z]+$')]
+    )
+
+    class Meta:
+        verbose_name = 'Жанр'
+
+    def __str__(self):
+        return self.name
 
 
 class Genre(models.Model):
@@ -19,9 +52,10 @@ class Title(models.Model):
         max_length=256,
         verbose_name=('Название произведения'),
     )
-    genre = models.ForeignKey(
+    genre = models.ManyToManyField(
         Genre,
         related_name='titles',
+        through='GenreTitle',
         verbose_name='Жанр',
     )
     category = models.ForeignKey(
@@ -29,6 +63,7 @@ class Title(models.Model):
         on_delete=models.SET_NULL,
         related_name='titles',
         null=True,
+        blank=True,
         verbose_name='Категория',
     )
     description = models.TextField(
@@ -58,7 +93,9 @@ class GenreTitle(models.Model):
     )
     genre = models.ForeignKey(
         Genre,
-        on_delete=models.CASCADE,
-        verbose_name='Жанр',
         related_name='genretitle',
+        on_delete=models.SET_NULL,
+        verbose_name='Жанр',
+        blank=True,
+        null=True,
     )
