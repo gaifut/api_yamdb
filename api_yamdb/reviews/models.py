@@ -1,7 +1,7 @@
 from django.core.validators import RegexValidator
 from django.db import models
 
-from .validators import validate_date
+from api.validators import validate_date
 
 
 class Category(models.Model):

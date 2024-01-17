@@ -1,14 +1,15 @@
 from django.db.models import Avg
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import APIView, filters, mixins, status, viewsets
+from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 
 from users.models import User
 from .filters import TitleFilter
-from .models import Category, Genre, Title
+from reviews.models import Category, Genre, Title
 from .permissions import IsAdminOrReadOnly
 from .serializers import (
     CategorySerializer, CustomUserSerializer, GenreSerializer, SignUpSerializer, TitleReadSerializer,
@@ -41,9 +42,11 @@ class GenreViewSet(CreateListDestroyViewSet):
 
 
 class TitleViewSet(viewsets.ModelViewSet):
-    queryset = Title.objects.annotate(rating=Avg('reviews__score')).order_by(
-        'name'
-    )
+    # Ждем reviews
+    # queryset = Title.objects.annotate(rating=Avg('reviews__score')).order_by(
+    #     'name'
+    # )
+    queryset = Title.objects.all()
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = TitleFilter

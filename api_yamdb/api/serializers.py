@@ -3,7 +3,7 @@ from users.models import User
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
-from .models import Category, Genre, Title
+from reviews.models import Category, Genre, Title
 
 
 class SignUpSerializer(serializers.ModelSerializer):
