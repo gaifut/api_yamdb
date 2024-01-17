@@ -2,7 +2,7 @@ from djoser.serializers import UserSerializer
 from users.models import User
 from rest_framework import serializers
 from rest_framework.relations import SlugRelatedField
-from rest_framework.validators import UniqueValidator
+from rest_framework.validators import UniqueValidator, UniqueTogetherValidator
 
 from reviews.models import Category, Comment, Review, Genre, Title
 
@@ -10,11 +10,14 @@ from reviews.models import Category, Comment, Review, Genre, Title
 class SignUpSerializer(serializers.ModelSerializer):
     """Сериализатор для получения кода, который потребуется для получения
     токена."""
-    username = serializers.CharField(
+    username = serializers.RegexField(
+        regex=r'^[\w.@+-]+\Z',
         validators=[UniqueValidator(queryset=User.objects.all())],
+        max_length=150
     )
     email = serializers.EmailField(
-        validators=[UniqueValidator(queryset=User.objects.all())]
+        validators=[UniqueValidator(queryset=User.objects.all())],
+        max_length=254
     )
 
     class Meta:
@@ -41,6 +44,17 @@ class CustomUserSerializer(UserSerializer):
             'username', 'email', 'first_name', 'last_name', 'bio', 'role'
         )
 
+
+class TokenSerializer(serializers.Serializer):
+    """Сериализатор для получения токена."""
+    username = serializers.RegexField(
+        regex=r'^[\w.@+-]+\Z', max_length=150, required=True,
+    )
+    confirmation_code = serializers.CharField(
+        max_length=150, required=True
+    )
+
+
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
@@ -55,8 +69,9 @@ class GenreSerializer(serializers.ModelSerializer):
 
 class TitleReadSerializer(serializers.ModelSerializer):
     genre = GenreSerializer(many=True)
-    category = CategorySerializer()
+    category = CategorySerializer(many=False)
     rating = serializers.IntegerField(read_only=True)
+
 
     class Meta:
         model = Title
@@ -84,6 +99,21 @@ class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
         fields = ('id', 'text', 'author', 'score', 'pub_date')
         model = Review
+        # validators = [
+        #     UniqueTogetherValidator(
+        #         queryset=Review.objects.all(),
+        #         fields=['author', 'title']
+        #     )
+        # ]
+    
+    def validate(self, data):
+        title = self.context.get('title')
+        author = self.context['request'].user
+
+        existing_review = Review.objects.filter(title=title, author=author).exists()
+        if existing_review:
+            raise serializers.ValidationError('Можно создать только 1 отзыв на 1 произведение')
+        return data
 
 
 class CommentSerializer(serializers.ModelSerializer):
