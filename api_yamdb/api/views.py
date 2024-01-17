@@ -1,13 +1,17 @@
 from django.db.models import Avg
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters, mixins, viewsets
+from rest_framework import APIView, filters, mixins, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.response import Response
 
+
+from users.models import User
 from .filters import TitleFilter
 from .models import Category, Genre, Title
 from .permissions import IsAdminOrReadOnly
 from .serializers import (
-    CategorySerializer, GenreSerializer, TitleReadSerializer,
+    CategorySerializer, CustomUserSerializer, GenreSerializer, SignUpSerializer, TitleReadSerializer,
     TitlePostSerializer
 )
 
@@ -49,3 +53,33 @@ class TitleViewSet(viewsets.ModelViewSet):
         if self.action in ('list', 'retrieve'):
             return TitleReadSerializer
         return TitlePostSerializer
+
+      
+class SignUpView(APIView):
+    """Регистрация новых пользователей через почту.
+    Возможность повторного запроса кода подтверждения."""
+
+    def post(self, request):
+        serializer = SignUpSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserViewSet(viewsets.ModelViewSet):
+    """Запросы к пользователю.
+
+    Регистрация администратором нового пользователя через post.
+    """
+    queryset = User.objects.all()
+    serializer_class = CustomUserSerializer
+    http_method_names = ['get', 'post', 'patch', 'delete']
+
+    @action(methods=['get', 'patch'], detail=True, url_path='me')
+    def my_profile(self, request):
+        """Редактирование и получение личной информации.
+
+        Права доступа: Любой авторизованный пользователь. Эндпоинт: users/me/.
+        """
+        ...

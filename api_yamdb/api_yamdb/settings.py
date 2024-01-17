@@ -1,3 +1,6 @@
+from pathlib import Path
+from datetime import timedelta
+
 import os
 
 
@@ -24,6 +27,8 @@ INSTALLED_APPS = [
     'django_filters',
     'rest_framework',
     'api.apps.ApiConfig',
+    'users.apps.UsersConfig',
+    'djoser',
 ]
 
 MIDDLEWARE = [
@@ -107,3 +112,16 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static/'),)
+
+# Настройки аутентификации по JWT токену:
+
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+}
+
+AUTH_USER_MODEL = 'users.User'
