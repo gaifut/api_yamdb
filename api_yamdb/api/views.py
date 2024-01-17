@@ -38,7 +38,7 @@ class CreateListDestroyViewSet(
 ):
     permission_classes = (IsAdminOrReadOnly,)
     lookup_field = 'slug'
-    filter_backends = filters.SearchFilter
+    filter_backends = filters.SearchFilter,
     search_fields = ('name',)
     pagination_class = PageNumberPagination
 
@@ -189,6 +189,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
         permissions.IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly
     )
     pagination_class = PageNumberPagination
+    http_method_names = ['get', 'post', 'patch', 'delete']
 
     def get_title(self):
         title_id = self.kwargs.get('title_id')
