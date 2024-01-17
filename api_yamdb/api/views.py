@@ -12,6 +12,7 @@ from .serializers import (
 )
 
 
+
 class CreateListDestroyViewSet(
     mixins.CreateModelMixin,
     mixins.DestroyModelMixin,
