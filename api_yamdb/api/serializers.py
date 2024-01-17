@@ -2,7 +2,7 @@ from djoser.serializers import UserSerializer
 from users.models import User
 from rest_framework import serializers
 from rest_framework.relations import SlugRelatedField
-from rest_framework.validators import UniqueValidator
+from rest_framework.validators import UniqueValidator, UniqueTogetherValidator
 
 from reviews.models import Category, Comment, Review, Genre, Title
 
@@ -69,8 +69,9 @@ class GenreSerializer(serializers.ModelSerializer):
 
 class TitleReadSerializer(serializers.ModelSerializer):
     genre = GenreSerializer(many=True)
-    category = CategorySerializer()
+    category = CategorySerializer(many=False)
     rating = serializers.IntegerField(read_only=True)
+
 
     class Meta:
         model = Title
@@ -90,7 +91,8 @@ class TitlePostSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Title
-        exclude = '__all__'
+        fields = '__all__'
+
 
 class ReviewSerializer(serializers.ModelSerializer):
     author = SlugRelatedField(slug_field='username', read_only=True)
@@ -98,6 +100,21 @@ class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
         fields = ('id', 'text', 'author', 'score', 'pub_date')
         model = Review
+        # validators = [
+        #     UniqueTogetherValidator(
+        #         queryset=Review.objects.all(),
+        #         fields=['author', 'title']
+        #     )
+        # ]
+    
+    def validate(self, data):
+        title = self.context.get('title')
+        author = self.context['request'].user
+
+        existing_review = Review.objects.filter(title=title, author=author).exists()
+        if existing_review:
+            raise serializers.ValidationError('Можно создать только 1 отзыв на 1 произведение')
+        return data
 
 
 class CommentSerializer(serializers.ModelSerializer):
