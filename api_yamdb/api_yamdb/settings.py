@@ -112,6 +112,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
+
 STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static/'),)
 
 # Настройки аутентификации по JWT токену:
@@ -123,6 +124,7 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
+    'PAGE_SIZE': 10,
 }
 
 AUTH_USER_MODEL = 'users.User'

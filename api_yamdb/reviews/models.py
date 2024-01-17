@@ -1,7 +1,8 @@
-from django.core.validators import RegexValidator
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
 
 from api.validators import validate_date
+from users.models import User
 
 
 class Category(models.Model):
@@ -99,3 +100,39 @@ class GenreTitle(models.Model):
         blank=True,
         null=True,
     )
+    
+class Review(models.Model):
+    title = models.ForeignKey(
+        Title, on_delete=models.CASCADE, related_name='reviews'
+    )
+    text = models.TextField()
+    author = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='reviews'
+    )
+    score = models.IntegerField(
+        validators=[
+            MinValueValidator(
+                1, message='Минимайльный рейтинг - 1.'
+            ),
+            MaxValueValidator(
+                10, message='Максимальный рейтинг - 10'
+            ),
+        ]
+    )
+    pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)
+
+    def __str__(self):
+        return self.text
+
+    class Meta:
+        unique_together = ('author', 'title')
+
+
+class Comment(models.Model):
+    author = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='comments')
+    review = models.ForeignKey(
+        Review, on_delete=models.CASCADE, related_name='comments')
+    text = models.TextField()
+    pub_date = models.DateTimeField(
+        'Дата добавления', auto_now_add=True, db_index=True)

@@ -1,9 +1,10 @@
 from djoser.serializers import UserSerializer
 from users.models import User
 from rest_framework import serializers
+from rest_framework.relations import SlugRelatedField
 from rest_framework.validators import UniqueValidator
 
-from reviews.models import Category, Genre, Title
+from reviews.models import Category, Comment, Review, Genre, Title
 
 
 class SignUpSerializer(serializers.ModelSerializer):
@@ -75,3 +76,20 @@ class TitlePostSerializer(serializers.ModelSerializer):
         model = Title
         exclude = ('rating',)
 
+class ReviewSerializer(serializers.ModelSerializer):
+    author = SlugRelatedField(slug_field='username', read_only=True)
+
+    class Meta:
+        fields = ('id', 'text', 'author', 'score', 'pub_date')
+        model = Review
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        read_only=True, slug_field='username'
+    )
+
+    class Meta:
+        model = Comment
+        fields = ('id', 'text', 'author', 'pub_date')
+        read_only_fields = ('post',)
