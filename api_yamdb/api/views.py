@@ -186,7 +186,7 @@ class TokenView(APIView):
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
     permission_classes = (
-        permissions.IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly
+        IsAuthorAdminSuperuserOrReadOnlyPermission,
     )
     pagination_class = PageNumberPagination
     http_method_names = ['get', 'post', 'patch', 'delete']
@@ -221,7 +221,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     permission_classes = (
-        permissions.IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly
+        IsAuthorAdminSuperuserOrReadOnlyPermission,
     )
     pagination_class = PageNumberPagination
     http_method_names = ['get', 'post', 'patch', 'delete']
@@ -236,13 +236,3 @@ class CommentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         review = self.get_review()
         return review.comments.all()   
-    
-    def update(self, request, *args, **kwargs):
-        comment = self.get_object()
-        if request.user == comment.author:
-            serializer = self.get_serializer(comment, data=request.data, partial=True)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(status=status.HTTP_403_FORBIDDEN)
-    
