@@ -11,7 +11,7 @@ from rest_framework.views import APIView
 from users.models import User
 from .filters import TitleFilter
 from reviews.models import Category, Genre, Review, Title
-from .permissions import IsAdminOrReadOnly
+from .permissions import IsAdminOrReadOnly, IsAuthorOrReadOnly
 from .serializers import (
     CategorySerializer, CommentSerializer, CustomUserSerializer, GenreSerializer, ReviewSerializer, SignUpSerializer, TitleReadSerializer,
     TitlePostSerializer
@@ -43,10 +43,9 @@ class GenreViewSet(CreateListDestroyViewSet):
 
 
 class TitleViewSet(viewsets.ModelViewSet):
-    # Ждем reviews
-    # queryset = Title.objects.annotate(rating=Avg('reviews__score')).order_by(
-    #     'name'
-    # )
+    queryset = Title.objects.annotate(rating=Avg('reviews__score')).order_by(
+        'name'
+    )
     queryset = Title.objects.all()
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
