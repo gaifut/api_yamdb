@@ -32,10 +32,16 @@ class SignUpSerializer(serializers.ModelSerializer):
         return value
 
 
-class CustomUserSerializer(UserSerializer):
+class CustomUserSerializer(serializers.ModelSerializer):
     """Сериализатор для модели пользователя."""
     username = serializers.RegexField(
         regex=r'^[\w.@+-]+\Z', max_length=150, required=True,
+        validators=[UniqueValidator(queryset=User.objects.all())]
+    )
+    email = serializers.EmailField(
+        validators=[UniqueValidator(queryset=User.objects.all())],
+        max_length=254,
+        required=True,
     )
 
     class Meta:

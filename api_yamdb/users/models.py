@@ -24,3 +24,6 @@ class User(AbstractUser):
     bio = models.TextField(null=True, blank=True)
     role = models.CharField(max_length=150, choices=USER_ROLES, default=USER)
     confirmation_code = models.CharField(max_length=150, null=True, blank=True)
+
+    class Meta:
+        ordering = ['username']
