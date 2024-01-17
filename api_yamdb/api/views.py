@@ -16,7 +16,12 @@ from rest_framework.views import APIView
 from users.models import User
 from .filters import TitleFilter
 from reviews.models import Category, Comment, Genre, Review, Title
-from .permissions import IsAdminOrReadOnly, IsAuthorOrReadOnly
+from .permissions import (
+    IsAdminOrReadOnly,
+    IsAuthorOrReadOnly,
+    IsAuthorAdminSuperuserOrReadOnlyPermission,
+    IsAdminPermission
+)
 from .serializers import (
     CategorySerializer, CommentSerializer, CustomUserSerializer, GenreSerializer, ReviewSerializer, SignUpSerializer, TitleReadSerializer,
     TitlePostSerializer, TokenSerializer
@@ -71,9 +76,36 @@ class SignUpView(APIView):
     def post(self, request):
         serializer = SignUpSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        try:
-            user, _ = User.objects.get_or_create(**serializer.validated_data)
-        except IntegrityError:
+        username = serializer.validated_data.get('username')
+        email = serializer.validated_data.get('email')
+        # try:
+        #     user, is_create = User.objects.get_or_create(
+        #         **serializer.validated_data
+        #     )
+        # except IntegrityError:
+            # return Response(
+            #     serializer.errors,
+            #     status=status.HTTP_400_BAD_REQUEST
+            # )
+        if User.objects.filter(username=username, email=email).exists():
+            user, _ = User.objects.get_or_create(
+                **serializer.validated_data
+            )
+            confirmation_code = default_token_generator.make_token(user)
+            user.confirmation_code = confirmation_code
+            user.save()
+            send_mail(
+                subject='Проверочный код',
+                message=f'Проверочный код: {confirmation_code}',
+                from_email=settings.EMAIL,
+                recipient_list=(user.email,),
+                fail_silently=False
+            )
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        user, is_create = User.objects.get_or_create(
+                **serializer.validated_data
+            )
+        if not is_create:
             return Response(
                 serializer.errors,
                 status=status.HTTP_400_BAD_REQUEST
@@ -89,6 +121,17 @@ class SignUpView(APIView):
             fail_silently=False
         )
         return Response(serializer.data, status=status.HTTP_200_OK)
+        # confirmation_code = default_token_generator.make_token(user)
+        # user.confirmation_code = confirmation_code
+        # user.save()
+        # send_mail(
+        #     subject='Проверочный код',
+        #     message=f'Проверочный код: {confirmation_code}',
+        #     from_email=settings.EMAIL,
+        #     recipient_list=(user.email,),
+        #     fail_silently=False
+        # )
+        # return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -99,14 +142,30 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = CustomUserSerializer
     http_method_names = ['get', 'post', 'patch', 'delete']
+    permission_classes = (IsAdminPermission,)
+    filter_backends = (filters.SearchFilter,)
+    lookup_field = 'username'
+    search_fields = ('username',)
+    pagination_class = PageNumberPagination
 
-    @action(methods=['get', 'patch'], detail=True, url_path='me')
+    @action(
+        methods=['get', 'patch'], detail=False, url_path='me',
+        permission_classes=(permissions.IsAuthenticated,)
+    )
     def my_profile(self, request):
         """Редактирование и получение личной информации.
 
         Права доступа: Любой авторизованный пользователь. Эндпоинт: users/me/.
         """
-        ...
+        if request.method == 'PATCH':
+            serializer = CustomUserSerializer(
+                request.user, data=request.data, partial=True
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save(role=request.user.role)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        serializer = CustomUserSerializer(request.user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class TokenView(APIView):
@@ -153,7 +212,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         title = self.get_title()
         return title.reviews.all()
-    
+
     # def update(self, request, *args, **kwargs):
     #     return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
@@ -175,9 +234,6 @@ class CommentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         review = self.get_review()
         return review.comments.all()
-    
+
     def update(self, request, *args, **kwargs):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
-    
-
-
