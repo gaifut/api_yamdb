@@ -23,4 +23,4 @@ class User(AbstractUser):
     last_name = models.CharField(max_length=150, null=True, blank=True)
     bio = models.TextField(null=True, blank=True)
     role = models.CharField(max_length=150, choices=USER_ROLES, default=USER)
-    confirmation_code = models.CharField(max_length=150)
+    confirmation_code = models.CharField(max_length=150, null=True, blank=True)

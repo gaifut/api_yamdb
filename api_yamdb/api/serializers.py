@@ -10,11 +10,14 @@ from reviews.models import Category, Comment, Review, Genre, Title
 class SignUpSerializer(serializers.ModelSerializer):
     """Сериализатор для получения кода, который потребуется для получения
     токена."""
-    username = serializers.CharField(
+    username = serializers.RegexField(
+        regex=r'^[\w.@+-]+\Z',
         validators=[UniqueValidator(queryset=User.objects.all())],
+        max_length=150
     )
     email = serializers.EmailField(
-        validators=[UniqueValidator(queryset=User.objects.all())]
+        validators=[UniqueValidator(queryset=User.objects.all())],
+        max_length=254
     )
 
     class Meta:
@@ -41,6 +44,17 @@ class CustomUserSerializer(UserSerializer):
             'username', 'email', 'first_name', 'last_name', 'bio', 'role'
         )
 
+
+class TokenSerializer(serializers.Serializer):
+    """Сериализатор для получения токена."""
+    username = serializers.RegexField(
+        regex=r'^[\w.@+-]+\Z', max_length=150, required=True,
+    )
+    confirmation_code = serializers.CharField(
+        max_length=150, required=True
+    )
+
+
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
@@ -56,11 +70,14 @@ class GenreSerializer(serializers.ModelSerializer):
 class TitleReadSerializer(serializers.ModelSerializer):
     genre = GenreSerializer(many=True)
     category = CategorySerializer(many=False)
-    # rating = serializers.IntegerField(default=0)
+    rating = serializers.IntegerField(read_only=True)
+
 
     class Meta:
         model = Title
-        fields = '__all__',
+        fields = (
+            'id', 'name', 'year', 'rating', 'description', 'genre', 'category'
+        )
 
 
 class TitlePostSerializer(serializers.ModelSerializer):
@@ -75,7 +92,7 @@ class TitlePostSerializer(serializers.ModelSerializer):
     class Meta:
         model = Title
         fields = '__all__'
-        # exclude = ('rating',)
+
 
 class ReviewSerializer(serializers.ModelSerializer):
     author = SlugRelatedField(slug_field='username', read_only=True)
