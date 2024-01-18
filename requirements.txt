@@ -8,9 +8,11 @@ charset-normalizer==2.0.12
 cryptography==41.0.7
 defusedxml==0.8.0rc2
 Django==3.2
+django-filter==23.5
 django-templated-mail==1.1.1
 djangorestframework==3.12.4
 djangorestframework-simplejwt==5.3.1
+djoser==2.2.2
 drf-nested-routers==0.93.5
 flake8==3.9.2
 flake8-docstrings==1.6.0
