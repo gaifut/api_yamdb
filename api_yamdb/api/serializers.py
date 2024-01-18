@@ -14,12 +14,10 @@ class SignUpSerializer(serializers.ModelSerializer):
     токена."""
     username = serializers.RegexField(
         regex=r'^[\w.@+-]+\Z',
-        validators=[UniqueValidator(queryset=User.objects.all())],
-        max_length=150
+        max_length=150, required=True
     )
     email = serializers.EmailField(
-        validators=[UniqueValidator(queryset=User.objects.all())],
-        max_length=254
+        max_length=254, required=True
     )
 
     class Meta:
@@ -32,6 +30,7 @@ class SignUpSerializer(serializers.ModelSerializer):
                 'Использовать имя "me" в качестве username запрещено.'
             )
         return value
+
 
 
 class CustomUserSerializer(serializers.ModelSerializer):

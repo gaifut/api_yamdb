@@ -117,6 +117,7 @@ class Review(models.Model):
 
     class Meta:
         unique_together = ('author', 'title')
+        ordering = ['-pub_date']
 
 
 class Comment(models.Model):
@@ -127,3 +128,6 @@ class Comment(models.Model):
     text = models.TextField()
     pub_date = models.DateTimeField(
         'Дата добавления', auto_now_add=True, db_index=True)
+    
+    class Meta:
+        ordering = ['-pub_date']
