@@ -29,7 +29,7 @@ end
 # Unset irrelevant variables.
 deactivate nondestructive
 
-set -gx VIRTUAL_ENV "/home/gaifut/Dev/api_yamdb/venv"
+set -gx VIRTUAL_ENV "/home/gaifut/Dev/extra2/api_yamdb/venv"
 
 set -gx _OLD_VIRTUAL_PATH $PATH
 set -gx PATH "$VIRTUAL_ENV/bin" $PATH
