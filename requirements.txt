@@ -12,7 +12,7 @@ django-filter==23.5
 django-templated-mail==1.1.1
 djangorestframework==3.12.4
 djangorestframework-simplejwt==5.3.1
-djoser==2.2.2
+djoser
 drf-nested-routers==0.93.5
 flake8==3.9.2
 flake8-docstrings==1.6.0
