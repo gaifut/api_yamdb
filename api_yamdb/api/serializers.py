@@ -1,12 +1,11 @@
 from django.shortcuts import get_object_or_404
-from djoser.serializers import UserSerializer
-from users.models import User
 from rest_framework import serializers
 from rest_framework.generics import get_object_or_404
 from rest_framework.relations import SlugRelatedField
-from rest_framework.validators import UniqueValidator, UniqueTogetherValidator
+from rest_framework.validators import UniqueValidator
 
 from reviews.models import Category, Comment, Review, Genre, Title
+from users.models import User
 
 
 class SignUpSerializer(serializers.ModelSerializer):
@@ -30,7 +29,6 @@ class SignUpSerializer(serializers.ModelSerializer):
                 'Использовать имя "me" в качестве username запрещено.'
             )
         return value
-
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -99,19 +97,14 @@ class TitlePostSerializer(serializers.ModelSerializer):
         model = Title
         fields = '__all__'
 
+
 class ReviewSerializer(serializers.ModelSerializer):
     author = SlugRelatedField(slug_field='username', read_only=True)
 
     class Meta:
         fields = ('id', 'text', 'author', 'score', 'pub_date')
         model = Review
-        # validators = [
-        #     UniqueTogetherValidator(
-        #         queryset=Review.objects.all(),
-        #         fields=['author', 'title']
-        #     )
-        # ]
-    
+
     def validate(self, data):
         request = self.context['request']
         author = request.user

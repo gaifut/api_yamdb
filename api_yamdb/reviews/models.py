@@ -1,4 +1,6 @@
-from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
+from django.core.validators import (
+    MaxValueValidator, MinValueValidator, RegexValidator
+)
 from django.db import models
 
 from api.validators import validate_date
@@ -91,7 +93,8 @@ class GenreTitle(models.Model):
         blank=True,
         null=True,
     )
-    
+
+
 class Review(models.Model):
     title = models.ForeignKey(
         Title, on_delete=models.CASCADE, related_name='reviews'
@@ -128,6 +131,6 @@ class Comment(models.Model):
     text = models.TextField()
     pub_date = models.DateTimeField(
         'Дата добавления', auto_now_add=True, db_index=True)
-    
+
     class Meta:
         ordering = ['-pub_date']

@@ -1,33 +1,30 @@
 from django.contrib.auth.tokens import default_token_generator
-from django.db.models import Avg
 from django.core.mail import send_mail
-from django.shortcuts import get_object_or_404
 from django.db import IntegrityError
+from django.db.models import Avg
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework_simplejwt.tokens import AccessToken
+from django.shortcuts import get_object_or_404
 from rest_framework import filters, mixins, permissions, status, viewsets
+from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-
-
+from api_yamdb import settings
+from reviews.models import Category, Genre, Review, Title
 from users.models import User
 from .filters import TitleFilter
-from reviews.models import Category, Comment, Genre, Review, Title
 from .permissions import (
     IsAdminOrReadOnly,
-    IsAuthorOrReadOnly,
     IsAuthorAdminSuperuserOrReadOnlyPermission,
     IsAdminPermission
 )
 from .serializers import (
-    CategorySerializer, CommentSerializer, CustomUserSerializer, GenreSerializer, ReviewSerializer, SignUpSerializer, TitleReadSerializer,
-    TitlePostSerializer, TokenSerializer
+    CategorySerializer, CommentSerializer, CustomUserSerializer,
+    GenreSerializer, ReviewSerializer, SignUpSerializer,
+    TitleReadSerializer, TitlePostSerializer, TokenSerializer
 )
-from api_yamdb import settings
-
 
 
 class CreateListDestroyViewSet(
@@ -54,9 +51,9 @@ class GenreViewSet(CreateListDestroyViewSet):
 
 
 class TitleViewSet(viewsets.ModelViewSet):
-    queryset = Title.objects.all().annotate(rating=Avg('reviews__score')).order_by(
-        'name'
-    )
+    queryset = Title.objects.all().annotate(
+        rating=Avg('reviews__score')
+    ).order_by('name')
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = TitleFilter
@@ -69,7 +66,6 @@ class TitleViewSet(viewsets.ModelViewSet):
         return TitlePostSerializer
 
 
-
 class SignUpView(APIView):
     """Регистрация новых пользователей через почту.
     Возможность повторного запроса кода подтверждения."""
@@ -77,8 +73,8 @@ class SignUpView(APIView):
     def get_or_create_user(self, **validated_data):
         """Получение или создание объекта пользователя."""
         user, is_create = User.objects.get_or_create(
-                **validated_data
-            )
+            **validated_data
+        )
         return user, is_create
 
     def send_confirmation_code(self, user):
@@ -99,31 +95,24 @@ class SignUpView(APIView):
         serializer.is_valid(raise_exception=True)
         username = serializer.validated_data.get('username')
         email = serializer.validated_data.get('email')
-        # Если в БД есть объект с такими уникальными значениями полей, то
-        # отправить код повторно
-        # print(f'1 - {User.objects.filter(username=username, email=email).exists()}')
         if User.objects.filter(username=username, email=email).exists():
             user, _ = self.get_or_create_user(
                 **serializer.validated_data
             )
             self.send_confirmation_code(user)
             return Response(serializer.data, status=status.HTTP_200_OK)
-        # Если в БД есть объект с одним уникальным значением поля, 
-        # то выслать ошибку
-        elif (
-            User.objects.filter(username=username).exists() or
-            User.objects.filter(email=email).exists()
+        if (
+            User.objects.filter(username=username).exists()
+            or User.objects.filter(email=email).exists()
         ):
             return Response(
                 serializer.errors, status=status.HTTP_400_BAD_REQUEST
             )
-        # Если не одно поле не занято, то создать пользователя в БД
-        else:
-            user, _ = self.get_or_create_user(
-                    **serializer.validated_data
-                )
-            self.send_confirmation_code(user)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+        user, _ = self.get_or_create_user(
+            **serializer.validated_data
+        )
+        self.send_confirmation_code(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -187,9 +176,6 @@ class ReviewViewSet(viewsets.ModelViewSet):
         title_id = self.kwargs.get('title_id')
         return get_object_or_404(Title, id=title_id)
 
-    # def perform_create(self, serializer):
-    #     serializer.save(author=self.request.user, title=self.get_title())
-
     def perform_create(self, serializer):
         title = self.get_title()
         author = self.request.user
@@ -201,13 +187,9 @@ class ReviewViewSet(viewsets.ModelViewSet):
             serializer.instance = existing_review
             serializer.save()
 
-
     def get_queryset(self):
         title = self.get_title()
         return title.reviews.all()
-
-    # def update(self, request, *args, **kwargs):
-    #     return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
@@ -227,5 +209,4 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         review = self.get_review()
-        return review.comments.all()   
-
+        return review.comments.all()
