@@ -29,7 +29,6 @@ from .serializers import (
 from api_yamdb import settings
 
 
-
 class CreateListDestroyViewSet(
     mixins.CreateModelMixin,
     mixins.DestroyModelMixin,
@@ -73,43 +72,15 @@ class SignUpView(APIView):
     """Регистрация новых пользователей через почту.
     Возможность повторного запроса кода подтверждения."""
 
-    def post(self, request):
-        serializer = SignUpSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        username = serializer.validated_data.get('username')
-        email = serializer.validated_data.get('email')
-        # try:
-        #     user, is_create = User.objects.get_or_create(
-        #         **serializer.validated_data
-        #     )
-        # except IntegrityError:
-            # return Response(
-            #     serializer.errors,
-            #     status=status.HTTP_400_BAD_REQUEST
-            # )
-        if User.objects.filter(username=username, email=email).exists():
-            user, _ = User.objects.get_or_create(
-                **serializer.validated_data
-            )
-            confirmation_code = default_token_generator.make_token(user)
-            user.confirmation_code = confirmation_code
-            user.save()
-            send_mail(
-                subject='Проверочный код',
-                message=f'Проверочный код: {confirmation_code}',
-                from_email=settings.EMAIL,
-                recipient_list=(user.email,),
-                fail_silently=False
-            )
-            return Response(serializer.data, status=status.HTTP_200_OK)
+    def get_or_create_user(self, **validated_data):
+        """Получение или создание объекта пользователя."""
         user, is_create = User.objects.get_or_create(
-                **serializer.validated_data
+                **validated_data
             )
-        if not is_create:
-            return Response(
-                serializer.errors,
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        return user, is_create
+
+    def send_confirmation_code(self, user):
+        """Отправка письма с кодом подтверждения."""
         confirmation_code = default_token_generator.make_token(user)
         user.confirmation_code = confirmation_code
         user.save()
@@ -120,18 +91,37 @@ class SignUpView(APIView):
             recipient_list=(user.email,),
             fail_silently=False
         )
-        return Response(serializer.data, status=status.HTTP_200_OK)
-        # confirmation_code = default_token_generator.make_token(user)
-        # user.confirmation_code = confirmation_code
-        # user.save()
-        # send_mail(
-        #     subject='Проверочный код',
-        #     message=f'Проверочный код: {confirmation_code}',
-        #     from_email=settings.EMAIL,
-        #     recipient_list=(user.email,),
-        #     fail_silently=False
-        # )
-        # return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        serializer = SignUpSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        username = serializer.validated_data.get('username')
+        email = serializer.validated_data.get('email')
+        # Если в БД есть объект с такими уникальными значениями полей, то
+        # отправить код повторно
+        # print(f'1 - {User.objects.filter(username=username, email=email).exists()}')
+        if User.objects.filter(username=username, email=email).exists():
+            user, _ = self.get_or_create_user(
+                **serializer.validated_data
+            )
+            self.send_confirmation_code(user)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        # Если в БД есть объект с одним уникальным значением поля, 
+        # то выслать ошибку
+        elif (
+            User.objects.filter(username=username).exists() or
+            User.objects.filter(email=email).exists()
+        ):
+            return Response(
+                serializer.errors, status=status.HTTP_400_BAD_REQUEST
+            )
+        # Если не одно поле не занято, то создать пользователя в БД
+        else:
+            user, _ = self.get_or_create_user(
+                    **serializer.validated_data
+                )
+            self.send_confirmation_code(user)
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class UserViewSet(viewsets.ModelViewSet):
