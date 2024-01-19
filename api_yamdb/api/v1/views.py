@@ -96,8 +96,8 @@ class SignUpView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         user, _ = User.objects.get_or_create(
-                **serializer.validated_data
-            )
+            **serializer.validated_data
+        )
         self.send_confirmation_code(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

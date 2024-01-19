@@ -2,7 +2,7 @@ from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-from api.validators import validate_username
+from api.v1.validators import validate_username
 from api_yamdb.settings import (
     MAX_LENGTH_USERNAME,
     MAX_LENGTH_FIRST_NAME,

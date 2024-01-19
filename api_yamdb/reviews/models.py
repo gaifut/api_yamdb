@@ -3,8 +3,8 @@ from django.core.validators import (
 )
 from django.db import models
 
-from api.validators import validate_date
-from api_yamdb.settings import MAX_LENGTH
+from api.v1.validators import validate_date
+from api_yamdb.settings import MAX_LENGTH, MIN_SCORE, MAX_SCORE
 from users.models import User
 
 
@@ -113,10 +113,10 @@ class Review(models.Model):
     score = models.IntegerField(
         validators=[
             MinValueValidator(
-                1, message='Минимайльный рейтинг - 1.'
+                MIN_SCORE, message=f'Минимайльный рейтинг - {MIN_SCORE}.'
             ),
             MaxValueValidator(
-                10, message='Максимальный рейтинг - 10'
+                MAX_SCORE, message=f'Максимальный рейтинг - {MAX_SCORE}'
             ),
         ]
     )
