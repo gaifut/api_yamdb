@@ -69,18 +69,9 @@ class SignUpView(APIView):
     """Регистрация новых пользователей через почту.
     Возможность повторного запроса кода подтверждения."""
 
-    def get_or_create_user(self, **validated_data):
-        """Получение или создание объекта пользователя."""
-        user, is_create = User.objects.get_or_create(
-            **validated_data
-        )
-        return user, is_create
-
     def send_confirmation_code(self, user):
         """Отправка письма с кодом подтверждения."""
         confirmation_code = default_token_generator.make_token(user)
-        user.confirmation_code = confirmation_code
-        user.save()
         send_mail(
             subject='Проверочный код',
             message=f'Проверочный код: {confirmation_code}',
@@ -90,26 +81,23 @@ class SignUpView(APIView):
         )
 
     def post(self, request):
+        """Post-запрос пользователя на получение кода подтверждения."""
         serializer = SignUpSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         username = serializer.validated_data.get('username')
         email = serializer.validated_data.get('email')
-        if User.objects.filter(username=username, email=email).exists():
-            user, _ = self.get_or_create_user(
-                **serializer.validated_data
-            )
-            self.send_confirmation_code(user)
-            return Response(serializer.data, status=status.HTTP_200_OK)
         if (
-            User.objects.filter(username=username).exists()
-            or User.objects.filter(email=email).exists()
+            not User.objects.filter(username=username, email=email).exists()
+            and (User.objects.filter(username=username).exists()
+                 or User.objects.filter(email=email).exists())
         ):
             return Response(
-                serializer.errors, status=status.HTTP_400_BAD_REQUEST
+                'Username или email уже заняты',
+                status=status.HTTP_400_BAD_REQUEST
             )
-        user, _ = self.get_or_create_user(
-            **serializer.validated_data
-        )
+        user, _ = User.objects.get_or_create(
+                **serializer.validated_data
+            )
         self.send_confirmation_code(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -129,10 +117,10 @@ class UserViewSet(viewsets.ModelViewSet):
     pagination_class = PageNumberPagination
 
     @action(
-        methods=['get', 'patch'], detail=False, url_path='me',
+        methods=['get', 'patch'], detail=False,
         permission_classes=(permissions.IsAuthenticated,)
     )
-    def my_profile(self, request):
+    def me(self, request):
         """Редактирование и получение личной информации.
 
         Права доступа: Любой авторизованный пользователь. Эндпоинт: users/me/.
