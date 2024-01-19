@@ -127,3 +127,5 @@ REST_FRAMEWORK = {
 AUTH_USER_MODEL = 'users.User'
 
 EMAIL = 'example@mail.ru'
+
+MAX_LENGTH = 256
