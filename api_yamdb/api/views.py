@@ -1,6 +1,5 @@
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
-from django.db import IntegrityError
 from django.db.models import Avg
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
@@ -177,15 +176,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
         return get_object_or_404(Title, id=title_id)
 
     def perform_create(self, serializer):
-        title = self.get_title()
-        author = self.request.user
-
-        try:
-            serializer.save(author=author, title=title)
-        except IntegrityError:
-            existing_review = Review.objects.get(author=author, title=title)
-            serializer.instance = existing_review
-            serializer.save()
+        serializer.save(author=self.request.user, title=self.get_title())
 
     def get_queryset(self):
         title = self.get_title()
@@ -202,7 +193,8 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def get_review(self):
         review_id = self.kwargs.get('review_id')
-        return get_object_or_404(Review, id=review_id)
+        title_id = self.kwargs.get('title_id')
+        return get_object_or_404(Review, id=review_id, title__id=title_id)
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user, review=self.get_review())

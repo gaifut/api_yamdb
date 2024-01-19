@@ -115,12 +115,17 @@ class Review(models.Model):
     )
     pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['author', 'title'], name='unique_author_title'
+            )]
+        ordering = ['-pub_date']
+        verbose_name = 'Отзыв'
+        verbose_name_plural = 'Отзывы'
+
     def __str__(self):
         return self.text
-
-    class Meta:
-        unique_together = ('author', 'title')
-        ordering = ['-pub_date']
 
 
 class Comment(models.Model):
@@ -134,3 +139,8 @@ class Comment(models.Model):
 
     class Meta:
         ordering = ['-pub_date']
+        verbose_name = 'Комментарий'
+        verbose_name_plural = 'Комментарии'
+
+    def __str__(self):
+        return self.name
