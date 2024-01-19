@@ -86,15 +86,18 @@ class SignUpView(APIView):
         serializer.is_valid(raise_exception=True)
         username = serializer.validated_data.get('username')
         email = serializer.validated_data.get('email')
-        if (
-            not User.objects.filter(username=username, email=email).exists()
-            and (User.objects.filter(username=username).exists()
-                 or User.objects.filter(email=email).exists())
-        ):
-            return Response(
-                'Username или email уже заняты',
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        response_data = {}
+        if not User.objects.filter(username=username, email=email).exists():
+            if User.objects.filter(username=username).exists():
+                response_data['username'] = ['Username уже занят.']
+                return Response(
+                    response_data, status=status.HTTP_400_BAD_REQUEST
+                )
+            elif User.objects.filter(email=email).exists():
+                response_data['email'] = ['Email уже занят.']
+                return Response(
+                    response_data, status=status.HTTP_400_BAD_REQUEST
+                )
         user, _ = User.objects.get_or_create(
             **serializer.validated_data
         )

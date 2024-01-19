@@ -72,7 +72,7 @@ python3.9 manage.py runserver
 ```
 
 ### Как наполнить БД данными:
-Перейти в папку api_yamdb, где находится файл manage.py и дать команды на заполнение:
+Перейти в папку api_yamdb, где находится файл manage.py и дать команду на заполнение:
 
 ```
 python3.9 manage.py csv_to_db
