@@ -126,4 +126,22 @@ REST_FRAMEWORK = {
 
 AUTH_USER_MODEL = 'users.User'
 
+# Настройка почты:
+
 EMAIL = 'example@mail.ru'
+EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
+EMAIL_FILE_PATH = os.path.join(BASE_DIR, 'sent_emails')
+
+# Переменные импортируемые в модель User и serializers.py:
+
+MAX_LENGTH_EMAIL = 254
+MAX_LENGTH_USERNAME = 150
+MAX_LENGTH_CONFIRMATION_CODE = 150
+MAX_LENGTH_FIRST_NAME = 150
+MAX_LENGTH_LAST_NAME = 150
+MAX_LENGTH_ROLE = 150
+
+MAX_LENGTH = 256
+
+MIN_SCORE = 1
+MAX_SCORE = 10

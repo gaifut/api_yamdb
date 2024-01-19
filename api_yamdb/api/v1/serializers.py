@@ -1,47 +1,29 @@
-from django.shortcuts import get_object_or_404
+from django.contrib.auth.validators import UnicodeUsernameValidator
 from rest_framework import serializers
-from rest_framework.generics import get_object_or_404
 from rest_framework.relations import SlugRelatedField
-from rest_framework.validators import UniqueValidator
 
 from reviews.models import Category, Comment, Review, Genre, Title
 from users.models import User
+from api_yamdb.settings import (
+    MAX_LENGTH_EMAIL, MAX_LENGTH_USERNAME, MAX_LENGTH_CONFIRMATION_CODE
+)
+from .validators import validate_username
 
 
-class SignUpSerializer(serializers.ModelSerializer):
-    """Сериализатор для получения кода, который потребуется для получения
-    токена."""
-    username = serializers.RegexField(
-        regex=r'^[\w.@+-]+\Z',
-        max_length=150, required=True
+class SignUpSerializer(serializers.Serializer):
+    """Сериализатор для запроса на получение кода, который потребуется
+    для получения токена."""
+    username = serializers.CharField(
+        max_length=MAX_LENGTH_USERNAME, required=True,
+        validators=[UnicodeUsernameValidator(), validate_username]
     )
     email = serializers.EmailField(
-        max_length=254, required=True
+        max_length=MAX_LENGTH_EMAIL, required=True
     )
-
-    class Meta:
-        model = User
-        fields = ('email', 'username')
-
-    def validate_username(self, value):
-        if value == 'me':
-            raise serializers.ValidationError(
-                'Использовать имя "me" в качестве username запрещено.'
-            )
-        return value
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
-    """Сериализатор для модели пользователя."""
-    username = serializers.RegexField(
-        regex=r'^[\w.@+-]+\Z', max_length=150, required=True,
-        validators=[UniqueValidator(queryset=User.objects.all())]
-    )
-    email = serializers.EmailField(
-        validators=[UniqueValidator(queryset=User.objects.all())],
-        max_length=254,
-        required=True,
-    )
+    """Сериализатор для запроса модели пользователя."""
 
     class Meta:
         model = User
@@ -51,12 +33,13 @@ class CustomUserSerializer(serializers.ModelSerializer):
 
 
 class TokenSerializer(serializers.Serializer):
-    """Сериализатор для получения токена."""
-    username = serializers.RegexField(
-        regex=r'^[\w.@+-]+\Z', max_length=150, required=True,
+    """Сериализатор для запроса на получение токена."""
+    username = serializers.CharField(
+        max_length=MAX_LENGTH_USERNAME, required=True,
+        validators=[UnicodeUsernameValidator(), validate_username]
     )
     confirmation_code = serializers.CharField(
-        max_length=150, required=True
+        max_length=MAX_LENGTH_CONFIRMATION_CODE, required=True
     )
 
 
@@ -75,7 +58,9 @@ class GenreSerializer(serializers.ModelSerializer):
 class TitleReadSerializer(serializers.ModelSerializer):
     genre = GenreSerializer(many=True)
     category = CategorySerializer(many=False)
-    rating = serializers.IntegerField(read_only=True)
+    rating = serializers.IntegerField(
+        read_only=True, default=None
+    )
 
     class Meta:
         model = Title
@@ -84,11 +69,16 @@ class TitleReadSerializer(serializers.ModelSerializer):
         )
 
 
+class TitlesRepresentation(serializers.SlugRelatedField):
+    def to_representation(self, value):
+        return {'name': value.name, 'slug': value.slug}
+
+
 class TitlePostSerializer(serializers.ModelSerializer):
-    category = serializers.SlugRelatedField(
+    category = TitlesRepresentation(
         queryset=Category.objects.all(), slug_field='slug'
     )
-    genre = serializers.SlugRelatedField(
+    genre = TitlesRepresentation(
         many=True, queryset=Genre.objects.all(), slug_field='slug'
     )
     year = serializers.IntegerField()
@@ -109,9 +99,8 @@ class ReviewSerializer(serializers.ModelSerializer):
         request = self.context['request']
         author = request.user
         title_id = self.context['view'].kwargs.get('title_id')
-        title = get_object_or_404(Title, pk=title_id)
         if request.method == 'POST':
-            if Review.objects.filter(title=title, author=author).exists():
+            if Review.objects.filter(title=title_id, author=author).exists():
                 raise serializers.ValidationError(
                     'Можно создать только 1 отзыв на 1 произведение'
                 )

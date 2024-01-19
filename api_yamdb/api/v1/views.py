@@ -1,6 +1,5 @@
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
-from django.db import IntegrityError
 from django.db.models import Avg
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
@@ -70,18 +69,9 @@ class SignUpView(APIView):
     """Регистрация новых пользователей через почту.
     Возможность повторного запроса кода подтверждения."""
 
-    def get_or_create_user(self, **validated_data):
-        """Получение или создание объекта пользователя."""
-        user, is_create = User.objects.get_or_create(
-            **validated_data
-        )
-        return user, is_create
-
     def send_confirmation_code(self, user):
         """Отправка письма с кодом подтверждения."""
         confirmation_code = default_token_generator.make_token(user)
-        user.confirmation_code = confirmation_code
-        user.save()
         send_mail(
             subject='Проверочный код',
             message=f'Проверочный код: {confirmation_code}',
@@ -91,24 +81,24 @@ class SignUpView(APIView):
         )
 
     def post(self, request):
+        """Post-запрос пользователя на получение кода подтверждения."""
         serializer = SignUpSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         username = serializer.validated_data.get('username')
         email = serializer.validated_data.get('email')
-        if User.objects.filter(username=username, email=email).exists():
-            user, _ = self.get_or_create_user(
-                **serializer.validated_data
-            )
-            self.send_confirmation_code(user)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        if (
-            User.objects.filter(username=username).exists()
-            or User.objects.filter(email=email).exists()
-        ):
-            return Response(
-                serializer.errors, status=status.HTTP_400_BAD_REQUEST
-            )
-        user, _ = self.get_or_create_user(
+        response_data = {}
+        if not User.objects.filter(username=username, email=email).exists():
+            if User.objects.filter(username=username).exists():
+                response_data['username'] = ['Username уже занят.']
+                return Response(
+                    response_data, status=status.HTTP_400_BAD_REQUEST
+                )
+            elif User.objects.filter(email=email).exists():
+                response_data['email'] = ['Email уже занят.']
+                return Response(
+                    response_data, status=status.HTTP_400_BAD_REQUEST
+                )
+        user, _ = User.objects.get_or_create(
             **serializer.validated_data
         )
         self.send_confirmation_code(user)
@@ -130,10 +120,10 @@ class UserViewSet(viewsets.ModelViewSet):
     pagination_class = PageNumberPagination
 
     @action(
-        methods=['get', 'patch'], detail=False, url_path='me',
+        methods=['get', 'patch'], detail=False,
         permission_classes=(permissions.IsAuthenticated,)
     )
-    def my_profile(self, request):
+    def me(self, request):
         """Редактирование и получение личной информации.
 
         Права доступа: Любой авторизованный пользователь. Эндпоинт: users/me/.
@@ -177,15 +167,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
         return get_object_or_404(Title, id=title_id)
 
     def perform_create(self, serializer):
-        title = self.get_title()
-        author = self.request.user
-
-        try:
-            serializer.save(author=author, title=title)
-        except IntegrityError:
-            existing_review = Review.objects.get(author=author, title=title)
-            serializer.instance = existing_review
-            serializer.save()
+        serializer.save(author=self.request.user, title=self.get_title())
 
     def get_queryset(self):
         title = self.get_title()
@@ -202,7 +184,8 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def get_review(self):
         review_id = self.kwargs.get('review_id')
-        return get_object_or_404(Review, id=review_id)
+        title_id = self.kwargs.get('title_id')
+        return get_object_or_404(Review, id=review_id, title__id=title_id)
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user, review=self.get_review())
