@@ -69,17 +69,6 @@ class SignUpView(APIView):
     """Регистрация новых пользователей через почту.
     Возможность повторного запроса кода подтверждения."""
 
-    def send_confirmation_code(self, user):
-        """Отправка письма с кодом подтверждения."""
-        confirmation_code = default_token_generator.make_token(user)
-        send_mail(
-            subject='Проверочный код',
-            message=f'Проверочный код: {confirmation_code}',
-            from_email=settings.EMAIL,
-            recipient_list=(user.email,),
-            fail_silently=False
-        )
-
     def post(self, request):
         """Post-запрос пользователя на получение кода подтверждения."""
         serializer = SignUpSerializer(data=request.data)
@@ -101,7 +90,14 @@ class SignUpView(APIView):
         user, _ = User.objects.get_or_create(
             **serializer.validated_data
         )
-        self.send_confirmation_code(user)
+        confirmation_code = default_token_generator.make_token(user)
+        send_mail(
+            subject='Проверочный код',
+            message=f'Проверочный код: {confirmation_code}',
+            from_email=settings.EMAIL,
+            recipient_list=(user.email,),
+            fail_silently=False
+        )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
