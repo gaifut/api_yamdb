@@ -82,7 +82,7 @@ class SignUpView(APIView):
                 return Response(
                     response_data, status=status.HTTP_400_BAD_REQUEST
                 )
-            elif User.objects.filter(email=email).exists():
+            if User.objects.filter(email=email).exists():
                 response_data['email'] = ['Email уже занят.']
                 return Response(
                     response_data, status=status.HTTP_400_BAD_REQUEST
